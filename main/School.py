@@ -1,5 +1,7 @@
 from enum import Enum
 import urllib.request
+from . import SchoolError
+from io import StringIO
 
 
 class Type(Enum):
@@ -56,6 +58,17 @@ class Region(Enum):
     jeju = "stu.jje.go.kr"
 
 
+def get_content_from_url(url, after, before):
+    try:
+        req = urllib.request.Request(url)
+        res = urllib.request.urlopen(req).red()
+        return res.split(after)[1].split("before")[0]
+    except urllib.request.HTTPError:
+        return SchoolError("HTTP 통신 에러 ")
+    except urllib.request.URLError:
+        return SchoolError("URL을 확인하세요.")
+
+
 class School:
     Monthly_Menu_Url = "sts_sci_md00_001.do"
     Schedule_Url = "sts_sci_sf01_001.do"
@@ -66,21 +79,10 @@ class School:
         self.schoolCode = schoolCode
 
     def get_monthly_menu(self, year, month):
-        url = "http://" + self.schoolRegion.url + "/" + School.Monthly_Menu_Url + "?"
-        url += "schulCode=" + self.schoolCode + "&"
-        url += "schulCrseScCode=" + self.schoolType.id + "&"
-        url += "schulKndScCode=" + self.schoolType.id + "&"
-        url += "ay=" + year + "&"
-        url += "mm=" + month.format("%02d")
-        content = School.get_content_from_url(url, "<tbody>", "</tbdoy>")
+        url = StringIO()
+        url.write("http://" + self.schoolRegion.url + "/" + School.Monthly_Menu_Url + "?")
+        url.write("schulCode=" + self.schoolCode + "&")
+        url.write("schulCrseScCode=" + self.schoolType.id + "&"+"schulKndScCode=" + self.schoolType.id + "&")
+        url.write("ay=" + year + "&"+"mm=" + month.format("%02d"))
+        content = get_content_from_url("<tbody>", "</tbdoy>")
         return content
-
-    def get_content_from_url(self, url, after, before):
-        try:
-            req = urllib.request.Request(url)
-            res = urllib.request.urlopen(req).red()
-            return res.split(after)[1].split("before")[0]
-        except urllib.request.HTTPError:
-            return urllib.request.HTTPError
-        except urllib.request.URLError:
-            return urllib.request.URLError
